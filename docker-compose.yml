@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: app_llm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app_llm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app_llm}
+      POSTGRES_DB: ${POSTGRES_DB:-app_llm}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app_llm} -d ${POSTGRES_DB:-app_llm}"]
+      interval: 43200s
+      timeout: 5s
+      retries: 10
+
+  # Metasearch instance used by backend/tools.py's web_search() as the primary search
+  # backend (falls back to the ddgs library if this is unreachable or errors out).
+  # Internal-only — not exposed as a public search proxy, see searxng/settings.yml.
+  searxng:
+    image: searxng/searxng:latest
+    container_name: app_llm_searxng
+    restart: unless-stopped
+    ports:
+      - "${SEARXNG_PORT:-8080}:8080"
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 43200s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: app_llm_backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8010}:8010"
+    environment:
+      LOCAL_STORAGE: /local_storage
+      LOCAL_LLM_URL: ${LOCAL_LLM_URL}
+      MODEL_NAME: ${LLM_MODEL_NAME}
+      REDIRECT_URL: ${REDIRECT_URL:-http://localhost:5173}
+      # Signs/encrypts the /api/sso -> /api/login handoff token — required, no safe default.
+      # Generate your own with `openssl rand -hex 32`.
+      SSO_SECRET_KEY: ${SSO_SECRET_KEY}
+      # Internal docker-network address of the searxng service below. web_search() falls
+      # back to ddgs on its own if this is unset, unreachable, or errors.
+      SEARXNG_URL: http://searxng:8080
+      SEARXNG_TIMEOUT: ${SEARXNG_TIMEOUT:-5}
+      SEARCH_PAGE_CHAR_LIMIT: ${SEARCH_PAGE_CHAR_LIMIT:-1500}
+      CHAT_RETENTION_DAYS: ${CHAT_RETENTION_DAYS:-}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app_llm}:${POSTGRES_PASSWORD:-app_llm}@postgres:5432/${POSTGRES_DB:-app_llm}
+    volumes:
+      # Persists uploaded/generated files and per-user data across container restarts.
+      - ${LOCAL_STORAGE_HOST_PATH}:/local_storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # /docs is FastAPI's built-in Swagger UI — used instead of /api/health since that
+      # endpoint proxies to LOCAL_LLM_URL and would report unhealthy whenever the external
+      # LLM server is down, even though the backend process itself is fine.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/docs')"]
+      interval: 43200s
+      timeout: 10s
+      retries: 5
+
+  # VITE_API_BASE_URL is baked into the image at build time (Vite inlines VITE_* vars into
+  # the built bundle) — changing it requires rebuilding this image, not just restarting it.
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8010}
+    container_name: app_llm_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8501}:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

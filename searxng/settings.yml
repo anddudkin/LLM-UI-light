@@ -1,0 +1,21 @@
+# Minimal override on top of SearXNG's baked-in default settings.yml (use_default_settings
+# merges this file with the image's defaults instead of replacing them). Mounted read-only
+# into the searxng service in docker-compose.yml.
+#
+# This instance is internal-only (reached by the backend over the docker network, see
+# SEARXNG_URL in docker-compose.yml's backend service) — it is not meant to be exposed to
+# the public internet, so the secret_key below only needs to be "not blank", not secret.
+use_default_settings: true
+
+general:
+  instance_name: "app_llm internal search"
+
+server:
+  # Generate your own before deploying: `openssl rand -hex 32`.
+  secret_key: "CHANGE-ME-generate-with-openssl-rand--hex-32"
+  limiter: false
+
+search:
+  formats:
+    - html
+    - json

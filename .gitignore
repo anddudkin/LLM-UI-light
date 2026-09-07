@@ -1,0 +1,12 @@
+.venv
+.files
+.env
+info_hr.docx
+__pycache__
+.idea
+backend/.idea
+frontend/.idea
+backend/local.db
+backend/fastapi_backend.log
+node_modules
+practice
