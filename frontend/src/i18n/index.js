@@ -3,7 +3,7 @@ import en from "./locales/en";
 import ru from "./locales/ru";
 
 const messages = { en, ru };
-const STORAGE_KEY = "app_llm_locale";
+const STORAGE_KEY = "llm_ui_light_locale";
 const DEFAULT_LOCALE = "en";
 
 function detectInitialLocale() {

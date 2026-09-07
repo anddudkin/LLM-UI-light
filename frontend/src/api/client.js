@@ -1,7 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8010";
 
 function authHeaders() {
-  const raw = localStorage.getItem("app_llm_user");
+  const raw = localStorage.getItem("llm_ui_light_user");
   if (!raw) return {};
   const { email } = JSON.parse(raw);
   return email ? { "X-User-Email": email } : {};

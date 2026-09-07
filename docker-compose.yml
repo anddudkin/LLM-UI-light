@@ -1,18 +1,18 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: app_llm_postgres
+    container_name: llm_ui_light_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-app_llm}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app_llm}
-      POSTGRES_DB: ${POSTGRES_DB:-app_llm}
+      POSTGRES_USER: ${POSTGRES_USER:-llm_ui_light}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-llm_ui_light}
+      POSTGRES_DB: ${POSTGRES_DB:-llm_ui_light}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - llm_ui_light_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app_llm} -d ${POSTGRES_DB:-app_llm}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-llm_ui_light} -d ${POSTGRES_DB:-llm_ui_light}"]
       interval: 43200s
       timeout: 5s
       retries: 10
@@ -22,7 +22,7 @@ services:
   # Internal-only — not exposed as a public search proxy, see searxng/settings.yml.
   searxng:
     image: searxng/searxng:latest
-    container_name: app_llm_searxng
+    container_name: llm_ui_light_searxng
     restart: unless-stopped
     ports:
       - "${SEARXNG_PORT:-8080}:8080"
@@ -38,7 +38,7 @@ services:
 
   backend:
     build: ./backend
-    container_name: app_llm_backend
+    container_name: llm_ui_light_backend
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8010}:8010"
@@ -56,7 +56,7 @@ services:
       SEARXNG_TIMEOUT: ${SEARXNG_TIMEOUT:-5}
       SEARCH_PAGE_CHAR_LIMIT: ${SEARCH_PAGE_CHAR_LIMIT:-1500}
       CHAT_RETENTION_DAYS: ${CHAT_RETENTION_DAYS:-}
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app_llm}:${POSTGRES_PASSWORD:-app_llm}@postgres:5432/${POSTGRES_DB:-app_llm}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-llm_ui_light}:${POSTGRES_PASSWORD:-llm_ui_light}@postgres:5432/${POSTGRES_DB:-llm_ui_light}
     volumes:
       # Persists uploaded/generated files and per-user data across container restarts.
       - ${LOCAL_STORAGE_HOST_PATH}:/local_storage
@@ -79,7 +79,7 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8010}
-    container_name: app_llm_frontend
+    container_name: llm_ui_light_frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8501}:80"
@@ -87,4 +87,4 @@ services:
       - backend
 
 volumes:
-  postgres_data:
+  llm_ui_light_postgres_data:

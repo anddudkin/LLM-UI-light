@@ -8,7 +8,7 @@
 use_default_settings: true
 
 general:
-  instance_name: "app_llm internal search"
+  instance_name: "llm_ui_light internal search"
 
 server:
   # Generate your own before deploying: `openssl rand -hex 32`.

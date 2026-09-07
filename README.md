@@ -2,8 +2,8 @@
 
 A chat assistant on top of your own self-hosted LLM server: FastAPI backend and Vue 3 frontend.
 Supports streaming responses, model tool-calling (web search out of the box, easy to extend with
-your own tools), document uploads (PDF/DOCX/XLSX) for the model to reason over, and a simple
-email-based login via an SSO redirect.
+your own tools), document uploads (PDF/DOCX/XLSX) for the model to reason over, and login either
+via an SSO redirect or a direct email+password sign-in/registration form.
 
 The project targets self-hosting by a single person or a small team — no GPU, no complex
 infrastructure required. The UI supports English and Russian, with a toggle in the sidebar and
@@ -21,9 +21,10 @@ English as the default; see "Language" below for details.
   GPU-free deployment.
 - Conversation history is stored server-side (SQLite out of the box, easily switched to
   Postgres).
-- Simple email-based login: an external system links to `/api/sso?email=...`, and the user gets
-  a session by email — no passwords. See "Security model" below — this is **not** full
-  authentication.
+- Two login paths: an external system links to `/api/sso?email=...` and the user gets a session by
+  email with no password (see "Security model" below — this is **not** full authentication), or,
+  when the site is opened directly with no such link, a plain email+password sign-in/registration
+  form (`POST /api/register`, `POST /api/login/password`) shown by the frontend itself.
 
 ## Quick start (Docker Compose)
 
@@ -82,6 +83,15 @@ can log in as any email address.
 
 `SSO_SECRET_KEY` is required and has no default specifically for this reason — the app won't
 start without it, so a forked/deployed copy can't be left running on a publicly known key.
+
+If you'd rather not expose `/api/sso` at all, the frontend's login screen also offers a direct
+email+password sign-in/registration form (backed by `POST /api/register` and
+`POST /api/login/password`) — passwords are hashed (`backend/security.py`, stdlib
+`hashlib.pbkdf2_hmac`, no third-party crypto dependency) and checked only at login time. Once
+logged in either way, the rest of the app treats the session identically: the frontend just holds
+the plain email and sends it as `X-User-Email` on every request (see `CLAUDE.md`'s "Auth" section
+for the full flow), so this is still a low-security-bar, self-hosted/internal design rather than a
+hardened multi-tenant auth system.
 
 ## Architecture
 

@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { login, loginWithPassword as apiLoginWithPassword, register as apiRegister } from "../api/client";
 import { t } from "../i18n";
 
-const STORAGE_KEY = "app_llm_user";
+const STORAGE_KEY = "llm_ui_light_user";
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({

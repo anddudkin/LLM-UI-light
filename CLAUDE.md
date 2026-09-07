@@ -329,7 +329,7 @@ dictionaries of nested keys; `index.js` exposes a reactive `locale` ref (Vue `re
 both from `<script setup>` templates and from plain Pinia store files like `stores/chat.js` and
 `stores/auth.js`, not just components), a `t(key, vars)` lookup function (falls back to English if
 a key is missing from the active locale, then returns the raw key if missing from both), and
-`setLocale()`, which persists the choice to `localStorage` (`app_llm_locale`) and updates
+`setLocale()`, which persists the choice to `localStorage` (`llm_ui_light_locale`) and updates
 `document.documentElement.lang` / `document.title` via a `watch`. Default locale is English unless
 `localStorage` already has a stored choice. `ConversationSidebar.vue` renders the EN/RU toggle
 buttons. Locally-generated user-facing strings that used to be hardcoded Russian (e.g. the
