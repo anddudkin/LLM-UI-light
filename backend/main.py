@@ -180,8 +180,6 @@ async def tool_handler(tool_name,tool_query):
         # arguments = json.loads(tool_query)
         # query = arguments["query"]
         return await web_search(tool_query)
-    if tool_name == "company_data_search":
-        return f"Company information: {comp_data}"
     else:
         logger.info(f"Problem calling function ({tool_name}  {tool_query})")
         return "The called function was not found or is unavailable"
@@ -431,15 +429,10 @@ async def check_tokens_document(document_text = None):
         logger.warning(f"Failed to check document token count (LLM unavailable?): {e}")
         return True
 
-comp_data = document_to_txt("info_hr.docx")
-
-
 def build_system_prompt() -> dict:
     """Built fresh per request so the embedded date stays correct across long-running processes."""
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     return {'role': 'system', 'content': f'You are an assistant at a company who answers user questions. Today is {today}. '
-                                          f'You also have access to information to answer some questions about company processes, '
-                                          f'and can use it if needed. '
                                           f'Reply in English unless asked to use another language. '
                                           f'If you use information from web_search results, always cite the source as a markdown link '
                                           f'in the format [source name](URL), rather than just the site or article name without a link.'

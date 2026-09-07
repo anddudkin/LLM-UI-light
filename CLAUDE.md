@@ -11,8 +11,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 An LLM chat assistant with a FastAPI backend and a Vue 3 frontend. The backend proxies chat
 completions to a self-hosted, OpenAI-compatible LLM server, supports model tool-calling (web
-search + an internal "company data" lookup), lets users upload documents for the LLM to reason
-over, and has an email-based SSO login flow backed by a SQL database (SQLite by default,
+search ships out of the box; adding custom tools is a schema entry in `tools.py` plus a branch in
+`tool_handler()` — see "Adding your own tools" in `backend/README.md`), lets users upload documents
+for the LLM to reason over, and has an email-based SSO login flow backed by a SQL database (SQLite
+by default,
 swappable to Postgres). The frontend is a single-page chat UI that talks to the backend over a
 separate origin (CORS wildcard-open on the backend, no dev proxy). The UI ships with a small
 custom i18n layer (`frontend/src/i18n/`, no external dependency) supporting English and Russian,
@@ -30,7 +32,7 @@ backend/
   data_models.py          Pydantic request/response schemas
   tools.py                LLM tool-call schema (`tools`) + web_search() implementation
   document_processing.py  PDF/DOCX/XLSX text extraction (document_to_txt, text_to_docx) — used
-                           both for info_hr.docx at startup and for chat file uploads
+                           for chat file uploads
   init_local_storage.py   Per-user local folder creation (add_user_folder)
   cipher.py               Homegrown XOR-keystream cipher used to obfuscate email in SSO redirect
                            (key comes from the required SSO_SECRET_KEY env var)
@@ -144,10 +146,6 @@ neither alone covers every deletion path.
 
 ### Missing pieces in a fresh checkout
 
-- `backend/info_hr.docx` — loaded at import time via `document_to_txt("info_hr.docx")` into
-  `comp_data`, which backs the `company_data_search` tool response. `document_to_txt()` never
-  raises, so a missing file doesn't crash startup — `comp_data` just becomes an error string, and
-  the model will relay that error every time it calls `company_data_search`.
 - Audio transcription (`backend/routers/transcribe.py`) is referenced nowhere currently and is not
   implemented — out of scope for now.
 
@@ -222,9 +220,10 @@ one clear error from the actual chat call rather than crashing the endpoint or h
   error message the model sees for that one document instead of aborting the whole upload.
 - `generate()` is a recursive async generator that streams *structured events* (dicts, not raw
   text) from the OpenAI-compatible client: `token`, `tool_call_start`, `tool_result`, `error`.
-  When the model emits a tool call, it dispatches via `tool_handler` (`web_search` in `tools.py`,
-  or `company_data_search` — a static string built from `info_hr.docx`), appends the assistant
-  tool-call + tool-result messages, and recurses (bounded by `max_depth`, default 5).
+  When the model emits a tool call, it dispatches via `tool_handler` (`web_search` in `tools.py`
+  is the only one that ships out of the box — see "Adding your own tools" in `backend/README.md`
+  for how to add more), appends the assistant tool-call + tool-result messages, and recurses
+  (bounded by `max_depth`, default 5).
   `stream_and_persist()` wraps `generate()`: serializes each event to an NDJSON line (`media_type
   ="application/x-ndjson"`), accumulates the full assistant text + tool events, persists the
   final `Message` row once the stream ends, and appends a trailing `{"type":"done"}` line. On
@@ -339,8 +338,8 @@ is no OCR in this codebase, deliberately, to keep the whole app CPU-only and dep
 markdown table). Any other extension, or any exception during extraction, produces an
 English-language explanatory string rather than raising — `document_to_txt()` never throws, so a
 bad/unsupported file degrades to an error message the model can relay, instead of failing the whole
-request. This same function backs both `comp_data = document_to_txt("info_hr.docx")` at startup and
-per-file extraction in `/api/v1/chat/completions_files`. There is intentionally no separate
+request. This function backs per-file extraction in `/api/v1/chat/completions_files`. There is
+intentionally no separate
 document-processing microservice, no OCR, and no GPU/ML dependency (`torch`/`docling`/`easyocr`
 were removed) — this trades away scanned-document support for a much lighter, GPU-free deployment
 footprint, which fits the project's target audience of small self-hosted setups better than an

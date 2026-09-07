@@ -1,8 +1,9 @@
 # backend
 
-FastAPI application: streaming chat endpoints, model tool-calling (web search, internal
-company-data lookup), document upload and processing, email-based SSO login, history stored in a
-SQL database (SQLite by default, switchable to Postgres).
+FastAPI application: streaming chat endpoints, model tool-calling (web search out of the box, easy
+to extend with your own tools — see "Adding your own tools" below), document upload and
+processing, email-based SSO login, history stored in a SQL database (SQLite by default, switchable
+to Postgres).
 
 ## Running
 
@@ -48,14 +49,21 @@ alembic upgrade head
 alembic revision --autogenerate -m "..."
 ```
 
-## Missing pieces in a fresh checkout
+## Adding your own tools
 
-`info_hr.docx` — loaded at startup (`document_to_txt("info_hr.docx")`) and backs the
-`company_data_search` tool. It's not included in the repository (it's internal data specific to
-one company). `document_to_txt()` doesn't raise on a missing file — it just returns an
-error-description string, and the model will relay that string on every `company_data_search`
-call. Put your own `.docx` describing your company under this name, or remove the
-`company_data_search` tool from `tools.py`/`main.py` if you don't need it.
+Model tool-calling is intentionally minimal — `tools.py` defines the `tools` list (OpenAI-style
+function schemas) and `web_search()`, the only tool that ships out of the box. To add your own:
+
+1. Append a new `{"type": "function", "function": {...}}` entry to the `tools` list in
+   `tools.py`, with a `name`, a `description` (this is what the model reads to decide when to call
+   it — be specific), and a JSON-schema `parameters` block, matching the shape of the existing
+   `web_search` entry.
+2. Handle that `name` in `tool_handler()` in `main.py` — it's a single `if tool_name == "..."`
+   dispatch — and return the string the model should see as the tool's result (fetch from an API,
+   query a database, read a file, whatever your tool needs to do).
+
+That's the whole integration surface: no plugin system, no registration step, just a schema entry
+plus a branch in `tool_handler()`.
 
 ## Tests
 

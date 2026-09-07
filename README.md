@@ -1,9 +1,9 @@
 # LLM UI light
 
 A chat assistant on top of your own self-hosted LLM server: FastAPI backend and Vue 3 frontend.
-Supports streaming responses, model tool-calling (web search and an internal company-data
-lookup), document uploads (PDF/DOCX/XLSX) for the model to reason over, and a simple email-based
-login via an SSO redirect.
+Supports streaming responses, model tool-calling (web search out of the box, easy to extend with
+your own tools), document uploads (PDF/DOCX/XLSX) for the model to reason over, and a simple
+email-based login via an SSO redirect.
 
 The project targets self-hosting by a single person or a small team — no GPU, no complex
 infrastructure required. The UI supports English and Russian, with a toggle in the sidebar and

@@ -1,3 +1,6 @@
+# To add a custom tool: append another {"type": "function", "function": {...}} entry here
+# (same JSON-schema shape as web_search below), then handle its name in tool_handler() in
+# main.py — dispatch on tool_name and return the string result the model should see.
 tools = [
     {
         "type": "function",
@@ -17,23 +20,6 @@ tools = [
             }
         }
     },
-    {
-        "type": "function",
-        "function": {
-            "name": "company_data_search",  # Name of the function the model will call
-            "description": "Searches the company's internal knowledge base. Use this tool when you need information about internal processes (how to request time off, submit a form, etc.), policies, documents, or other similar company-specific matters.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "A search query phrased clearly and specifically, as you would for a search engine."
-                    },
-                },
-                "required": ["query"]  # Required parameter
-            }
-        }
-    }
 ]
 
 
