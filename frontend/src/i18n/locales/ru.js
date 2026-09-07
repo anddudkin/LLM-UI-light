@@ -17,6 +17,7 @@ export default {
     chats: "Чаты",
     placeholder: "Напишите сообщение...",
     webSearch: "Поиск в интернете",
+    language: "Язык",
     dropHint: "Отпустите файлы, чтобы прикрепить",
     copy: "Скопировать",
     copied: "Скопировано",

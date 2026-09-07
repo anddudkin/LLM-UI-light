@@ -17,6 +17,7 @@ export default {
     chats: "Chats",
     placeholder: "Type a message...",
     webSearch: "Web search",
+    language: "Language",
     dropHint: "Drop files to attach",
     copy: "Copy",
     copied: "Copied",

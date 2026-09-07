@@ -11,11 +11,6 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - llm_ui_light_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-llm_ui_light} -d ${POSTGRES_DB:-llm_ui_light}"]
-      interval: 43200s
-      timeout: 5s
-      retries: 10
 
   # Metasearch instance used by backend/tools.py's web_search() as the primary search
   # backend (falls back to the ddgs library if this is unreachable or errors out).
@@ -30,11 +25,6 @@ services:
       - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
     environment:
       SEARXNG_BASE_URL: http://searxng:8080/
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
-      interval: 43200s
-      timeout: 10s
-      retries: 5
 
   backend:
     build: ./backend
@@ -61,16 +51,7 @@ services:
       # Persists uploaded/generated files and per-user data across container restarts.
       - ${LOCAL_STORAGE_HOST_PATH}:/local_storage
     depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      # /docs is FastAPI's built-in Swagger UI — used instead of /api/health since that
-      # endpoint proxies to LOCAL_LLM_URL and would report unhealthy whenever the external
-      # LLM server is down, even though the backend process itself is fine.
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/docs')"]
-      interval: 43200s
-      timeout: 10s
-      retries: 5
+      - postgres
 
   # VITE_API_BASE_URL is baked into the image at build time (Vite inlines VITE_* vars into
   # the built bundle) — changing it requires rebuilding this image, not just restarting it.

@@ -9,6 +9,13 @@ The project targets self-hosting by a single person or a small team — no GPU, 
 infrastructure required. The UI supports English and Russian, with a toggle in the sidebar and
 English as the default; see "Language" below for details.
 
+## Screenshots
+
+<p>
+  <img src="docs/images/main.png" alt="Chat view" width="49%" />
+  <img src="docs/images/main1.png" alt="Chat view, alternate" width="49%" />
+</p>
+
 ## Features
 
 - Streaming chat on top of any OpenAI-compatible LLM server (vLLM, llama.cpp server,

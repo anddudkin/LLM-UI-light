@@ -1,12 +1,40 @@
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, onBeforeUnmount, ref } from "vue";
 import { useChatStore } from "../stores/chat";
 import { t, locale, setLocale } from "../i18n";
 
 const chat = useChatStore();
 
+const localeOptions = [
+  { code: "en", label: "English" },
+  { code: "ru", label: "Русский" },
+];
+
+const langMenuOpen = ref(false);
+const langSwitchEl = ref(null);
+
+function toggleLangMenu() {
+  langMenuOpen.value = !langMenuOpen.value;
+}
+
+function selectLocale(code) {
+  setLocale(code);
+  langMenuOpen.value = false;
+}
+
+function onDocumentClick(event) {
+  if (langSwitchEl.value && !langSwitchEl.value.contains(event.target)) {
+    langMenuOpen.value = false;
+  }
+}
+
 onMounted(() => {
   chat.fetchConversations();
+  document.addEventListener("click", onDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onDocumentClick);
 });
 </script>
 
@@ -37,23 +65,31 @@ onMounted(() => {
       </li>
     </ul>
 
-    <div class="lang-switch" role="group">
+    <div class="lang-switch" ref="langSwitchEl">
       <button
         type="button"
-        :class="{ active: locale === 'en' }"
-        :aria-pressed="locale === 'en'"
-        @click="setLocale('en')"
+        class="lang-trigger"
+        :aria-expanded="langMenuOpen"
+        :title="t('chat.language')"
+        @click="toggleLangMenu"
       >
-        EN
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+        </svg>
       </button>
-      <button
-        type="button"
-        :class="{ active: locale === 'ru' }"
-        :aria-pressed="locale === 'ru'"
-        @click="setLocale('ru')"
-      >
-        RU
-      </button>
+      <ul v-if="langMenuOpen" class="lang-menu" role="menu">
+        <li v-for="option in localeOptions" :key="option.code">
+          <button
+            type="button"
+            :class="{ active: locale === option.code }"
+            :aria-pressed="locale === option.code"
+            @click="selectLocale(option.code)"
+          >
+            {{ option.label }}
+          </button>
+        </li>
+      </ul>
     </div>
   </aside>
 </template>
@@ -187,33 +223,68 @@ onMounted(() => {
 }
 
 .lang-switch {
-  display: flex;
-  gap: 0.25rem;
+  position: relative;
   padding: 0.5rem 0.4rem 0.15rem;
   margin-top: auto;
   border-top: 1px solid var(--border);
 }
 
-.lang-switch button {
-  flex: 1;
-  padding: 0.35rem 0;
+.lang-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 50%;
   background: var(--bg);
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.lang-switch button:hover {
+.lang-trigger:hover,
+.lang-trigger[aria-expanded="true"] {
+  background: var(--bg-tertiary);
+  color: var(--text);
+}
+
+.lang-menu {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 0.4rem;
+  min-width: 9rem;
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+
+.lang-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lang-menu button:hover {
   background: var(--bg-tertiary);
 }
 
-.lang-switch button.active {
+.lang-menu button.active {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--accent-text);
 }
 </style>
