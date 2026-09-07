@@ -164,7 +164,7 @@ hosting, no dev proxy) — CORS on the backend is wildcard-open.
 
 ## Architecture
 
-**Auth**: no passwords or tokens — this is designed for internal/self-hosted, low-security-bar
+**Auth**: no session tokens — this is designed for internal/self-hosted, low-security-bar
 deployments (see "Модель безопасности" in the root `README.md`). The company platform (or whatever
 trusted layer sits in front) links to `GET /api/sso?email=...`, which encrypts the email with
 `cipher.py`'s `SimpleCipher` (homegrown SHA256-keystream XOR, **not** a real crypto scheme, keyed by
@@ -177,6 +177,17 @@ looks up (or lazily creates) the user by that header — trust, no verification.
 any email. `SSO_SECRET_KEY` has no default specifically so a forked/deployed copy can't be left on
 a publicly-known key — but it does not change the fact that `/api/sso` itself performs no
 authentication of its own.
+
+For deployments opened directly (no trusted layer in front to hit `/api/sso`), `LoginForm.vue` in
+the frontend renders an email+password sign-in/registration form instead, backed by
+`POST /api/register` and `POST /api/login/password` in `main.py`. Passwords are hashed with
+stdlib `hashlib.pbkdf2_hmac` in `security.py` (`hash_password`/`verify_password`) — no
+passlib/bcrypt dependency, matching the project's dependency-light approach — and stored in
+`User.password_hash` (nullable, added in migration `0004`; `None` for SSO-only users, which makes
+`/api/login/password` reject them rather than call `verify_password()` on a missing hash). Once
+either login path succeeds, the rest of the app behaves identically: the frontend still just holds
+the plain email and sends it as `X-User-Email` on every request, so password checking only gates
+the initial login/registration call, not later requests.
 
 **Persistence** (`db.py` + `models.py`): `User` → `Conversation` → `Message` → `UploadedFile`.
 Conversation history is server-authoritative — the frontend never resends the full message array.

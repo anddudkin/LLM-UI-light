@@ -1,8 +1,14 @@
 export default {
-  app: {
-    loginFailedTitle: "Couldn't log in",
-    welcomeTitle: "Welcome",
-    welcomeBody: "Open this app through your company platform to log in.",
+  auth: {
+    loginTitle: "Sign in",
+    registerTitle: "Create an account",
+    emailPlaceholder: "Email",
+    passwordPlaceholder: "Password",
+    loginButton: "Sign in",
+    registerButton: "Create account",
+    submitting: "Please wait...",
+    switchToRegister: "Don't have an account? Register",
+    switchToLogin: "Already have an account? Sign in",
   },
   chat: {
     greeting: "How can I help?",

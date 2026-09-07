@@ -20,6 +20,9 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    # Null for users that only ever authenticated via SSO (see cipher.py / /api/sso) — they have no
+    # password to check, so /api/login/password rejects them regardless of what password is tried.
+    password_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="user")

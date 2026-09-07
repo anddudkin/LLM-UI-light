@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { login } from "../api/client";
+import { login, loginWithPassword as apiLoginWithPassword, register as apiRegister } from "../api/client";
 import { t } from "../i18n";
 
 const STORAGE_KEY = "app_llm_user";
@@ -55,6 +55,22 @@ export const useAuthStore = defineStore("auth", {
       }
 
       this.ready = true;
+    },
+    // Direct email+password login, used by LoginForm.vue when the site is opened without an
+    // SSO ?user_info= redirect. Throws on failure so the form can show the error itself.
+    async loginWithPassword(email, password) {
+      const { user_id, email: confirmedEmail } = await apiLoginWithPassword(email, password);
+      this.userId = user_id;
+      this.email = confirmedEmail;
+      this.error = null;
+      this.persist();
+    },
+    async register(email, password) {
+      const { user_id, email: confirmedEmail } = await apiRegister(email, password);
+      this.userId = user_id;
+      this.email = confirmedEmail;
+      this.error = null;
+      this.persist();
     },
   },
 });

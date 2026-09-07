@@ -48,6 +48,26 @@ export async function login(userInfo) {
   return res.json();
 }
 
+export async function loginWithPassword(email, password) {
+  const res = await fetch(`${BASE_URL}/api/login/password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(parseErrorMessage(await res.text()));
+  return res.json();
+}
+
+export async function register(email, password) {
+  const res = await fetch(`${BASE_URL}/api/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(parseErrorMessage(await res.text()));
+  return res.json();
+}
+
 export async function listConversations() {
   const res = await fetch(`${BASE_URL}/api/v1/conversations`, { headers: authHeaders() });
   if (!res.ok) throw new Error(parseErrorMessage(await res.text()));

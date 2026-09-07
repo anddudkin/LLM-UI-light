@@ -1,8 +1,14 @@
 export default {
-  app: {
-    loginFailedTitle: "Не удалось войти",
-    welcomeTitle: "Добро пожаловать",
-    welcomeBody: "Откройте это приложение через корпоративную платформу, чтобы войти.",
+  auth: {
+    loginTitle: "Вход",
+    registerTitle: "Регистрация",
+    emailPlaceholder: "Email",
+    passwordPlaceholder: "Пароль",
+    loginButton: "Войти",
+    registerButton: "Зарегистрироваться",
+    submitting: "Подождите...",
+    switchToRegister: "Нет аккаунта? Зарегистрироваться",
+    switchToLogin: "Уже есть аккаунт? Войти",
   },
   chat: {
     greeting: "Чем могу помочь?",

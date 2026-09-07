@@ -28,6 +28,7 @@ from dotenv import load_dotenv
 from data_models import *
 from tools import  *
 from cipher import cipher
+from security import hash_password, verify_password
 from fastapi.responses import RedirectResponse
 from db import get_db, async_session
 import models
@@ -709,6 +710,44 @@ async def login(user_info: str = Form(...), db: AsyncSession = Depends(get_db)):
     add_user_folder(email)
 
     return {"user_id": user.id, "email": user.email}
+
+
+@app.post("/api/register")
+async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """Direct email+password sign-up, for users who open the site without going through SSO."""
+    email = request.email.strip().lower()
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email")
+
+    result = await db.execute(select(models.User).where(models.User.email == email))
+    if result.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=409, detail="An account with this email already exists")
+
+    user = models.User(email=email, password_hash=hash_password(request.password))
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    add_user_folder(email)
+
+    return {"user_id": user.id, "email": user.email}
+
+
+@app.post("/api/login/password")
+async def login_password(request: PasswordLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Direct email+password login, alongside the SSO flow above."""
+    email = request.email.strip().lower()
+    result = await db.execute(select(models.User).where(models.User.email == email))
+    user = result.scalar_one_or_none()
+    # A None password_hash means the account was created via SSO and has no password set —
+    # reject rather than letting verify_password() run on a missing hash.
+    if user is None or not user.password_hash or not verify_password(request.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    add_user_folder(email)
+
+    return {"user_id": user.id, "email": user.email}
+
 
 @app.get("/api/health")
 async def check_health():

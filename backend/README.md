@@ -2,8 +2,9 @@
 
 FastAPI application: streaming chat endpoints, model tool-calling (web search out of the box, easy
 to extend with your own tools — see "Adding your own tools" below), document upload and
-processing, email-based SSO login, history stored in a SQL database (SQLite by default, switchable
-to Postgres).
+processing, email-based SSO login plus a direct email+password login/registration fallback
+(`POST /api/register`, `POST /api/login/password`) for opening the site outside the SSO redirect,
+history stored in a SQL database (SQLite by default, switchable to Postgres).
 
 ## Running
 

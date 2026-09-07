@@ -21,3 +21,11 @@ class ChatMessageRequest(BaseModel):
 
 class EditMessageRequest(BaseModel):
     message: str
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str = Field(..., min_length=8)
+
+class PasswordLoginRequest(BaseModel):
+    email: str
+    password: str
