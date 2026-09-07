@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from "vue";
 import { useChatStore } from "../stores/chat";
+import { t, locale, setLocale } from "../i18n";
 
 const chat = useChatStore();
 
@@ -13,17 +14,17 @@ onMounted(() => {
   <aside class="sidebar">
     <div class="brand">
       <span class="logo">✦</span>
-      <span class="brand-name">ИИ Ассистент</span>
+      <span class="brand-name">{{ t("chat.brand") }}</span>
     </div>
 
     <button class="new-chat" @click="chat.newConversation()">
       <svg class="new-chat-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M12 5v14M5 12h14" />
       </svg>
-      <span class="new-chat-label">Новый чат</span>
+      <span class="new-chat-label">{{ t("chat.newChat") }}</span>
     </button>
 
-    <div class="list-label" v-if="chat.conversations.length">Чаты</div>
+    <div class="list-label" v-if="chat.conversations.length">{{ t("chat.chats") }}</div>
     <ul class="list">
       <li
         v-for="conversation in chat.conversations"
@@ -35,6 +36,25 @@ onMounted(() => {
         {{ conversation.title }}
       </li>
     </ul>
+
+    <div class="lang-switch" role="group">
+      <button
+        type="button"
+        :class="{ active: locale === 'en' }"
+        :aria-pressed="locale === 'en'"
+        @click="setLocale('en')"
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        :class="{ active: locale === 'ru' }"
+        :aria-pressed="locale === 'ru'"
+        @click="setLocale('ru')"
+      >
+        RU
+      </button>
+    </div>
   </aside>
 </template>
 
@@ -164,5 +184,36 @@ onMounted(() => {
 .list li.active {
   background: var(--bg-tertiary);
   font-weight: 600;
+}
+
+.lang-switch {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 0.4rem 0.15rem;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.lang-switch button {
+  flex: 1;
+  padding: 0.35rem 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.lang-switch button:hover {
+  background: var(--bg-tertiary);
+}
+
+.lang-switch button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 </style>

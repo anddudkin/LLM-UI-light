@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from "vue";
 import { useAuthStore } from "./stores/auth";
+import { t } from "./i18n";
 
 const auth = useAuthStore();
 
@@ -16,8 +17,8 @@ onMounted(() => {
   <div v-else-if="!auth.isAuthenticated" class="centered">
     <div class="card">
       <div class="logo">✦</div>
-      <h1>{{ auth.error ? "Не удалось войти" : "Добро пожаловать" }}</h1>
-      <p>{{ auth.error || "Откройте это приложение через корпоративную платформу, чтобы войти." }}</p>
+      <h1>{{ auth.error ? t("app.loginFailedTitle") : t("app.welcomeTitle") }}</h1>
+      <p>{{ auth.error || t("app.welcomeBody") }}</p>
     </div>
   </div>
   <router-view v-else />

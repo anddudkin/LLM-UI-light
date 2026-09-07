@@ -7,6 +7,7 @@ import {
   streamChatWithFiles,
   editMessage as editMessageRequest,
 } from "../api/client";
+import { t } from "../i18n";
 
 export const useChatStore = defineStore("chat", {
   state: () => ({
@@ -30,7 +31,7 @@ export const useChatStore = defineStore("chat", {
       }
       if (this._creatingConversation) return this._creatingConversation;
 
-      const reusable = this.conversations.find((c) => c.title === "Новый чат");
+      const reusable = this.conversations.find((c) => c.title === "New chat");
       if (reusable) {
         await this.selectConversation(reusable.id);
         return reusable;
@@ -96,7 +97,7 @@ export const useChatStore = defineStore("chat", {
           onEvent: (event) => this._handleEvent(event),
         });
       } catch (e) {
-        result = { ok: false, message: e?.message || "Не удалось связаться с сервером." };
+        result = { ok: false, message: e?.message || t("errors.serverUnreachable") };
       }
 
       await this._finishStream(result);
@@ -125,7 +126,7 @@ export const useChatStore = defineStore("chat", {
           onEvent: (event) => this._handleEvent(event),
         });
       } catch (e) {
-        result = { ok: false, message: e?.message || "Не удалось связаться с сервером." };
+        result = { ok: false, message: e?.message || t("errors.serverUnreachable") };
       }
 
       await this._finishStream(result);
@@ -134,7 +135,7 @@ export const useChatStore = defineStore("chat", {
     async sendMessageWithFiles(text, files, forceWebSearch = false) {
       const conversationId = await this._ensureConversation();
 
-      this.messages.push({ role: "user", content: text || `[Отправлено ${files.length} файл(ов)]` });
+      this.messages.push({ role: "user", content: text || t("files.sent", { count: files.length }) });
       this.streaming = true;
       this.streamingText = "";
       this.toolStatus = null;
@@ -150,7 +151,7 @@ export const useChatStore = defineStore("chat", {
           onEvent: (event) => this._handleEvent(event),
         });
       } catch (e) {
-        result = { ok: false, message: e?.message || "Не удалось связаться с сервером." };
+        result = { ok: false, message: e?.message || t("errors.serverUnreachable") };
       }
 
       await this._finishStream(result);
@@ -158,7 +159,7 @@ export const useChatStore = defineStore("chat", {
 
     async _finishStream(result) {
       if (!result.ok) {
-        this.error = result.message || `Ошибка запроса (${result.status})`;
+        this.error = result.message || t("errors.requestError", { status: result.status });
       } else if (this.currentConversationId) {
         // Re-fetch so locally-added messages (pushed without an id) pick up the
         // server-assigned ids that editing a message later needs to target.

@@ -2,6 +2,7 @@
 import { ref, nextTick } from "vue";
 import { useChatStore } from "../stores/chat";
 import FileUpload from "./FileUpload.vue";
+import { t } from "../i18n";
 
 const chat = useChatStore();
 const text = ref("");
@@ -77,7 +78,7 @@ function onDrop(event) {
         @dragleave.prevent="onDragLeave"
         @drop.prevent="onDrop"
       >
-        <div v-if="isDraggingOver" class="drop-hint">Отпустите файлы, чтобы прикрепить</div>
+        <div v-if="isDraggingOver" class="drop-hint">{{ t("chat.dropHint") }}</div>
         <div v-if="files.length" class="file-chips">
           <span v-for="(file, i) in files" :key="i" class="chip">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -93,7 +94,7 @@ function onDrop(event) {
           <textarea
             ref="textarea"
             v-model="text"
-            placeholder="Напишите сообщение..."
+            :placeholder="t('chat.placeholder')"
             rows="1"
             :disabled="chat.streaming"
             @input="resize"
@@ -119,7 +120,7 @@ function onDrop(event) {
             <line x1="2" y1="12" x2="22" y2="12" />
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
-          Поиск в интернете
+          {{ t("chat.webSearch") }}
         </button>
       </div>
     </div>

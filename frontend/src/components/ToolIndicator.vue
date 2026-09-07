@@ -1,18 +1,21 @@
 <script setup>
+import { t } from "../i18n";
+
 defineProps({
   toolStatus: { type: Object, default: null },
 });
 
-const labels = {
-  web_search: "Ищу в интернете",
-  company_data_search: "Ищу во внутренней базе знаний",
-};
+function toolLabel(tool) {
+  const key = `tool.${tool}`;
+  const label = t(key);
+  return label === key ? t("tool.calling", { tool }) : label;
+}
 </script>
 
 <template>
   <div v-if="toolStatus" class="pill">
     <span class="dot" />
-    {{ labels[toolStatus.tool] || `Вызываю ${toolStatus.tool}` }}
+    {{ toolLabel(toolStatus.tool) }}
   </div>
 </template>
 

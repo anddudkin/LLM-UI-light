@@ -2,6 +2,7 @@
 import { nextTick, watch, ref } from "vue";
 import ToolIndicator from "./ToolIndicator.vue";
 import { renderMarkdown } from "../utils/markdown";
+import { t } from "../i18n";
 
 const props = defineProps({
   conversationId: { type: [String, Number], default: null },
@@ -131,7 +132,7 @@ function onEditKeydown(event, message) {
           <button
             class="copy-btn"
             type="button"
-            :title="copiedIndex === i ? 'Скопировано' : 'Скопировать'"
+            :title="copiedIndex === i ? t('chat.copied') : t('chat.copy')"
             @click="copyMessage(message.content, i)"
           >
             <svg v-if="copiedIndex !== i" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -151,8 +152,8 @@ function onEditKeydown(event, message) {
             @keydown="onEditKeydown($event, message)"
           />
           <div class="edit-actions">
-            <button class="edit-cancel" @click="cancelEdit">Отмена</button>
-            <button class="edit-save" @click="submitEdit(message)">Отправить</button>
+            <button class="edit-cancel" @click="cancelEdit">{{ t("chat.cancel") }}</button>
+            <button class="edit-save" @click="submitEdit(message)">{{ t("chat.send") }}</button>
           </div>
         </div>
         <div v-else class="user-wrap">
@@ -161,7 +162,7 @@ function onEditKeydown(event, message) {
             v-if="!streaming && message.id"
             class="edit-btn"
             type="button"
-            title="Редактировать сообщение"
+            :title="t('chat.editMessage')"
             @click="startEdit(i)"
           >
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { login } from "../api/client";
+import { t } from "../i18n";
 
 const STORAGE_KEY = "app_llm_user";
 
@@ -40,7 +41,7 @@ export const useAuthStore = defineStore("auth", {
           this.email = email;
           this.persist();
         } catch (e) {
-          this.error = e?.message || "Не удалось выполнить вход.";
+          this.error = e?.message || t("errors.loginFailed");
         } finally {
           // Strip user_info even on failure — otherwise a reload resubmits the
           // same broken token and reproduces the same error indefinitely.

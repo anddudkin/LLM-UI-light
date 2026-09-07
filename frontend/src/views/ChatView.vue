@@ -3,6 +3,7 @@ import { useChatStore } from "../stores/chat";
 import ConversationSidebar from "../components/ConversationSidebar.vue";
 import MessageList from "../components/MessageList.vue";
 import MessageInput from "../components/MessageInput.vue";
+import { t } from "../i18n";
 
 const chat = useChatStore();
 </script>
@@ -14,7 +15,7 @@ const chat = useChatStore();
       <div v-if="chat.messages.length === 0" class="welcome">
         <div class="welcome-inner">
           <div class="welcome-logo">✦</div>
-          <h1>Чем могу помочь?</h1>
+          <h1>{{ t("chat.greeting") }}</h1>
           <div class="welcome-input">
             <MessageInput />
           </div>
