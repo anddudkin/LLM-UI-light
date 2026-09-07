@@ -1,96 +1,108 @@
 # LLM UI light
 
-Русскоязычный чат-ассистент поверх вашего собственного (self-hosted) LLM-сервера: FastAPI-бэкенд
-и Vue 3 фронтенд. Поддерживает потоковую генерацию ответов, вызов инструментов моделью (веб-поиск
-и внутренний поиск по данным компании), загрузку документов (PDF/DOCX/XLSX) для анализа моделью и
-простой email-based вход через SSO-редирект.
+A chat assistant on top of your own self-hosted LLM server: FastAPI backend and Vue 3 frontend.
+Supports streaming responses, model tool-calling (web search and an internal company-data
+lookup), document uploads (PDF/DOCX/XLSX) for the model to reason over, and a simple email-based
+login via an SSO redirect.
 
-Проект рассчитан в первую очередь на локальное развёртывание одним человеком или небольшой
-командой — без GPU и без сложной инфраструктуры. Интерфейс, системные промпты и часть комментариев
-в коде — на русском языке, это осознанный выбор, а не недосмотр.
+The project targets self-hosting by a single person or a small team — no GPU, no complex
+infrastructure required. The UI, system prompts, and some code comments are in Russian by default
+(this was the project's original audience); see "Language" below if you're adapting it for an
+English-speaking deployment.
 
-## Возможности
+## Features
 
-- Потоковый чат поверх любого OpenAI-совместимого LLM-сервера (vLLM, llama.cpp server,
-  text-generation-webui и т.п.) — просто укажите `LOCAL_LLM_URL`.
-- Веб-поиск как tool call модели (через self-hosted SearXNG с фолбэком на `ddgs`), в том числе
-  принудительный поиск по кнопке в интерфейсе.
-- Загрузка файлов в чат: текст извлекается из PDF (с текстовым слоем), DOCX и XLSX без каких-либо
-  ML/GPU-зависимостей — просто `pypdfium2`/`python-docx`/`openpyxl`. Сканы и документы без
-  текстового слоя не распознаются (OCR отсутствует) — это осознанный компромисс ради лёгкого
-  деплоя без GPU.
-- История переписки хранится на сервере (SQLite из коробки, легко переключается на Postgres).
-- Простой email-based вход: внешняя система линкует на `/api/sso?email=...`, дальше пользователь
-  просто получает сессию по email — без паролей. См. раздел "Модель безопасности" ниже — это
-  **не** полноценная аутентификация.
+- Streaming chat on top of any OpenAI-compatible LLM server (vLLM, llama.cpp server,
+  text-generation-webui, etc.) — just point it at `LOCAL_LLM_URL`.
+- Web search as a model tool call (via a self-hosted SearXNG instance, falling back to `ddgs`),
+  including a forced-search toggle in the UI.
+- File uploads in chat: text is extracted from PDF (text-layer only), DOCX, and XLSX with no
+  ML/GPU dependencies — just `pypdfium2`/`python-docx`/`openpyxl`. Scanned documents or files with
+  no text layer aren't recognized (there's no OCR) — a deliberate tradeoff for a lightweight,
+  GPU-free deployment.
+- Conversation history is stored server-side (SQLite out of the box, easily switched to
+  Postgres).
+- Simple email-based login: an external system links to `/api/sso?email=...`, and the user gets
+  a session by email — no passwords. See "Security model" below — this is **not** full
+  authentication.
 
-## Быстрый старт (Docker Compose)
+## Quick start (Docker Compose)
 
 ```bash
 cp .env.example .env
-# отредактируйте .env — обязательно заполните LOCAL_LLM_URL, LLM_MODEL_NAME, SSO_SECRET_KEY
+# edit .env — make sure to fill in LOCAL_LLM_URL, LLM_MODEL_NAME, SSO_SECRET_KEY
 docker compose up --build
 ```
 
-Поднимутся: `postgres`, `searxng` (метапоиск для веб-поиска), `backend` (:8010), `frontend`
-(:8501 по умолчанию, см. `FRONTEND_PORT`).
+This brings up: `postgres`, `searxng` (metasearch for web search), `backend` (:8010), `frontend`
+(:8501 by default, see `FRONTEND_PORT`).
 
-Откройте `http://localhost:8501` — вход выполняется через `GET http://localhost:8010/api/sso?email=you@example.com`
-(в проде это должна быть ссылка из вашей корпоративной SSO-системы/portal, см. ниже).
+Open `http://localhost:8501` — login happens via `GET http://localhost:8010/api/sso?email=you@example.com`
+(in production this should be a link from your corporate SSO system/portal, see below).
 
-### Обязательные переменные окружения
+### Required environment variables
 
-| Переменная | Где используется | Описание |
+| Variable | Used by | Description |
 |---|---|---|
-| `LOCAL_LLM_URL` | backend | Базовый URL вашего OpenAI-совместимого LLM-сервера |
-| `LLM_MODEL_NAME` | backend | Имя модели, передаваемое в запросах к LLM-серверу |
-| `SSO_SECRET_KEY` | backend | Ключ шифрования email в SSO-редиректе. Сгенерировать: `openssl rand -hex 32` |
-| `REDIRECT_URL` | backend | Куда `/api/sso` редиректит после шифрования email (обычно — адрес фронтенда) |
-| `LOCAL_STORAGE_HOST_PATH` | docker-compose | Хост-директория для загруженных файлов/кэша/истории |
+| `LOCAL_LLM_URL` | backend | Base URL of your OpenAI-compatible LLM server |
+| `LLM_MODEL_NAME` | backend | Model name sent in requests to the LLM server |
+| `SSO_SECRET_KEY` | backend | Key used to encrypt the email in the SSO redirect. Generate with: `openssl rand -hex 32` |
+| `REDIRECT_URL` | backend | Where `/api/sso` redirects after encrypting the email (usually the frontend's address) |
+| `LOCAL_STORAGE_HOST_PATH` | docker-compose | Host directory for uploaded files/cache/history |
 
-Полный список опциональных переменных — в `.env.example` (корень репозитория) и `backend/.env.example`-подобных комментариях внутри `.env.example`.
+The full list of optional variables is in `.env.example` (repo root), with comments describing
+each one, mirrored by `backend/.env.example`-style settings.
 
-## Запуск без Docker (разработка)
+## Running without Docker (development)
 
-Подробности — в `backend/README.md`; кратко:
+Details are in `backend/README.md`; in short:
 
 ```bash
 # backend
 cd backend
 pip install -r requirements.txt
-# создайте backend/.env с LOCAL_STORAGE, LOCAL_LLM_URL, MODEL_NAME, REDIRECT_URL, SSO_SECRET_KEY
+# create backend/.env with LOCAL_STORAGE, LOCAL_LLM_URL, MODEL_NAME, REDIRECT_URL, SSO_SECRET_KEY
 uvicorn main:app --host 0.0.0.0 --port 8010
 
-# frontend (в отдельном терминале)
+# frontend (in a separate terminal)
 cd frontend
 npm install
-cp .env.example .env   # при необходимости поправьте VITE_API_BASE_URL
+cp .env.example .env   # adjust VITE_API_BASE_URL if needed
 npm run dev
 ```
 
-## Модель безопасности (важно прочитать)
+## Security model (important — please read)
 
-`/api/sso?email=...` **доверяет email из query-параметра без какой-либо проверки подписи или
-пароля**. Это осознанное упрощение для внутреннего/доверенного использования: предполагается, что
-перед этим сервисом уже стоит ваш собственный SSO/reverse-proxy/VPN, который аутентифицировал
-пользователя, и что ссылка `/api/sso?email=...` формируется этим доверенным слоем, а не вводится
-пользователем напрямую. **Не выставляйте `/api/sso` напрямую в открытый интернет** без
-дополнительного слоя аутентификации перед ним — в текущем виде любой, кто может обратиться к этому
-эндпоинту, может войти под любым email.
+`/api/sso?email=...` **trusts the email from the query parameter with no signature or password
+verification whatsoever**. This is a deliberate simplification for internal/trusted use: it
+assumes your own SSO/reverse-proxy/VPN already sits in front of this service and has authenticated
+the user, and that the `/api/sso?email=...` link is generated by that trusted layer rather than
+typed by the user directly. **Do not expose `/api/sso` directly to the open internet** without an
+additional authentication layer in front of it — as it stands, anyone who can reach this endpoint
+can log in as any email address.
 
-`SSO_SECRET_KEY` обязателен и не имеет дефолта именно поэтому — без него приложение не запустится,
-чтобы форкнутые/задеплоенные копии не оставались на публично известном ключе.
+`SSO_SECRET_KEY` is required and has no default specifically for this reason — the app won't
+start without it, so a forked/deployed copy can't be left running on a publicly known key.
 
-## Архитектура
+## Architecture
 
-Подробное описание структуры проекта, потоков данных и внутренних решений — в [`CLAUDE.md`](CLAUDE.md)
-(изначально писался как контекст для Claude Code, но остаётся актуальным техническим описанием
-архитектуры для людей).
+A detailed description of the project structure, data flows, and internal design decisions lives
+in [`CLAUDE.md`](CLAUDE.md) (originally written as context for Claude Code, but it remains an
+accurate technical description of the architecture for humans too).
 
-## Лицензия
+## Language
+
+The UI, LLM system prompts, and some code comments are in Russian by default, reflecting the
+project's original target audience. This is a product choice baked into the current codebase, not
+something you need to work around to use the project — but if you're deploying for an
+English-speaking audience, you'll want to translate `build_system_prompt()` in `backend/main.py`
+and the frontend's UI strings. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how this affects
+contributions.
+
+## License
 
 [MIT](LICENSE).
 
-## Контрибьютинг
+## Contributing
 
-См. [`CONTRIBUTING.md`](CONTRIBUTING.md).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).

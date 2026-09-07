@@ -1,62 +1,62 @@
 # backend
 
-FastAPI-приложение: чат-эндпоинты со стримингом, вызов инструментов моделью (веб-поиск,
-внутренний поиск по данным компании), загрузка и обработка документов, email-based SSO-вход,
-хранение истории в SQL БД (SQLite по умолчанию, переключается на Postgres).
+FastAPI application: streaming chat endpoints, model tool-calling (web search, internal
+company-data lookup), document upload and processing, email-based SSO login, history stored in a
+SQL database (SQLite by default, switchable to Postgres).
 
-## Запуск
+## Running
 
 ```bash
-pip install -r requirements.txt   # или: uv pip install -r requirements.txt
+pip install -r requirements.txt   # or: uv pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8010
 ```
 
-## Обязательные переменные окружения (`.env` в этой директории)
+## Required environment variables (`.env` in this directory)
 
-`main.py` и `cipher.py` читают их при импорте — без них приложение не запустится:
+`main.py` and `cipher.py` read these at import time — the app won't start without them:
 
-- `LOCAL_STORAGE` — базовая директория для файлов пользователей, кэша чата и истории.
-- `LOCAL_LLM_URL` — базовый URL self-hosted OpenAI-совместимого LLM-сервера.
-- `MODEL_NAME` — имя модели, передаваемое серверу LLM.
-- `REDIRECT_URL` — куда `/api/sso` редиректит после шифрования email (адрес фронтенда,
-  например `http://localhost:5173`).
-- `SSO_SECRET_KEY` — ключ шифрования/дешифрования email в SSO-редиректе. Сгенерировать:
-  `openssl rand -hex 32`. См. раздел "Модель безопасности" в корневом `README.md` — это не
-  полноценная аутентификация, а доверительная схема для развёртывания за собственным SSO/VPN.
+- `LOCAL_STORAGE` — base directory for user files, chat cache, and history.
+- `LOCAL_LLM_URL` — base URL of the self-hosted OpenAI-compatible LLM server.
+- `MODEL_NAME` — model name passed to the LLM server.
+- `REDIRECT_URL` — where `/api/sso` redirects after encrypting the email (the frontend's
+  address, e.g. `http://localhost:5173`).
+- `SSO_SECRET_KEY` — key used to encrypt/decrypt the email in the SSO redirect. Generate with:
+  `openssl rand -hex 32`. See "Security model" in the root `README.md` — this is not full
+  authentication, it's a trust-based scheme for deployment behind your own SSO/VPN.
 
-## Опциональные переменные
+## Optional variables
 
-- `CHAT_RETENTION_DAYS` — если задано, включает фоновую очистку бесед старше указанного числа
-  дней (проверка раз в 24 часа, плюс один прогон сразу при старте). По умолчанию выключено —
-  ничего не удаляется автоматически.
-- `DATABASE_URL` — строка подключения (`db.py` вызывает `load_dotenv()` независимо от `main.py`).
-  По умолчанию `sqlite+aiosqlite:///./local.db`. Для Postgres:
-  `postgresql+asyncpg://user:pass@host/db` — код не меняется, только модели в `models.py` должны
-  оставаться портируемыми (`JSON`, а не `JSONB` и т.п.).
-- `SEARXNG_URL` / `SEARXNG_TIMEOUT` (по умолчанию `5` сек) / `SEARCH_PAGE_CHAR_LIMIT` (по
-  умолчанию `1500`) — настройки веб-поиска, см. `tools.py`. При недоступности SearXNG или пустом
-  результате поиск автоматически идёт через библиотеку `ddgs`.
+- `CHAT_RETENTION_DAYS` — if set, enables background cleanup of conversations older than the
+  given number of days (checked once every 24 hours, plus one run immediately at startup).
+  Disabled by default — nothing is deleted automatically.
+- `DATABASE_URL` — connection string (`db.py` calls `load_dotenv()` independently of `main.py`).
+  Defaults to `sqlite+aiosqlite:///./local.db`. For Postgres:
+  `postgresql+asyncpg://user:pass@host/db` — no code changes needed, just keep the models in
+  `models.py` portable (`JSON`, not `JSONB`, etc.).
+- `SEARXNG_URL` / `SEARXNG_TIMEOUT` (default `5` sec) / `SEARCH_PAGE_CHAR_LIMIT` (default
+  `1500`) — web search settings, see `tools.py`. If SearXNG is unreachable or returns no
+  results, search automatically falls back to the `ddgs` library.
 
-## Миграции (Alembic)
+## Migrations (Alembic)
 
-Схема БД версионируется в `migrations/versions/`. `main.py` при каждом старте (`lifespan()`)
-сам прогоняет `alembic upgrade head` — на чистой базе это создаёт все таблицы, на уже
-смигрированной — быстрый no-op. Вручную:
+The DB schema is versioned under `migrations/versions/`. On every startup (`lifespan()`),
+`main.py` runs `alembic upgrade head` itself — on a fresh database this creates all tables, on an
+already-migrated one it's a fast no-op. Manually:
 
 ```bash
 alembic upgrade head
 alembic revision --autogenerate -m "..."
 ```
 
-## Недостающее в свежем чекауте
+## Missing pieces in a fresh checkout
 
-`info_hr.docx` — грузится при старте (`document_to_txt("info_hr.docx")`) и обслуживает tool
-`company_data_search`. Файл не входит в репозиторий (внутренние данные конкретной компании).
-`document_to_txt()` не падает на отсутствующем файле — просто вернёт текст с описанием ошибки,
-и модель будет отвечать этой строкой на каждый вызов `company_data_search`. Положите свой `.docx`
-с описанием вашей компании под этим именем, либо уберите tool `company_data_search` из
-`tools.py`/`main.py`, если он вам не нужен.
+`info_hr.docx` — loaded at startup (`document_to_txt("info_hr.docx")`) and backs the
+`company_data_search` tool. It's not included in the repository (it's internal data specific to
+one company). `document_to_txt()` doesn't raise on a missing file — it just returns an
+error-description string, and the model will relay that string on every `company_data_search`
+call. Put your own `.docx` describing your company under this name, or remove the
+`company_data_search` tool from `tools.py`/`main.py` if you don't need it.
 
-## Тесты
+## Tests
 
-В репозитории нет тестов, линтера или форматтера.
+The repository has no tests, linter, or formatter.

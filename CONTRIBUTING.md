@@ -1,30 +1,31 @@
 # Contributing
 
-## Окружение для разработки
+## Development environment
 
-- Backend: `backend/README.md` — FastAPI, Python 3.14, зависимости в `backend/requirements.txt`.
+- Backend: `backend/README.md` — FastAPI, Python 3.14, dependencies in `backend/requirements.txt`.
 - Frontend: Vue 3 + Vite, `cd frontend && npm install && npm run dev`.
-- Быстрее всего поднять всё сразу через `docker compose up --build` в корне репозитория
-  (см. корневой `README.md`).
+- The fastest way to bring everything up at once is `docker compose up --build` from the repo
+  root (see the root `README.md`).
 
-В репозитории **нет** автотестов, линтера или форматтера — проверяйте изменения вручную,
-запуская приложение и проходя основной сценарий (см. раздел "Verification"/"Проверка" в описании
-задачи, если работаете по плану, или просто чат + загрузку файла + веб-поиск руками).
+The repository has **no** automated tests, linter, or formatter — verify changes manually by
+running the app and walking through the main flow (see the "Verification" section in the task
+description if you're working from a plan, or just try chat + file upload + web search by hand).
 
-## Коммиты
+## Commits
 
-Используются [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
-`refactor:`, `docs:`, `chore:` и т.д. Один коммит — одна логическая единица работы.
+Uses [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `refactor:`,
+`docs:`, `chore:`, etc. One commit per logical unit of work.
 
-## Pull request'ы
+## Pull requests
 
-- Опишите, что изменилось и почему (не только "что", это обычно видно из диффа).
-- Если меняете переменные окружения или docker-compose — обновите `.env.example` и
-  `README.md`/`CLAUDE.md` соответственно, чтобы документация не расходилась с кодом.
-- Небольшие, сфокусированные PR предпочтительнее больших смешанных.
+- Describe what changed and why (not just "what" — that's usually visible from the diff).
+- If you change environment variables or docker-compose — update `.env.example` and
+  `README.md`/`CLAUDE.md` accordingly, so the docs don't drift from the code.
+- Small, focused PRs are preferred over large mixed ones.
 
-## Язык
+## Language
 
-Интерфейс, системные промпты для LLM и часть комментариев в коде — на русском языке, это
-осознанный выбор продукта, а не что-то, что нужно переводить в PR. Комментарии к новому коду
-можно писать на русском или английском — ориентируйтесь на стиль соседнего кода в файле.
+The UI, the LLM system prompts, and some code comments are in Russian — this is a deliberate
+product choice reflecting the project's original audience, not something that needs to be
+translated in a PR. Comments on new code can be written in Russian or English — match the style
+of the surrounding code in the file.
