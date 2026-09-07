@@ -2,9 +2,9 @@ import base64
 import hashlib
 import os
 
-# Обязательная переменная окружения — приложение не должно запускаться с дефолтным/публично
-# известным ключом, иначе любой сможет подделать user_info для /api/sso и залогиниться под
-# произвольным email. Сгенерировать свой: `openssl rand -hex 32`.
+# Required environment variable — the app must not start with a default/publicly known key,
+# otherwise anyone could forge user_info for /api/sso and log in as an arbitrary email.
+# Generate your own: `openssl rand -hex 32`.
 SECRET_KEY = os.environ["SSO_SECRET_KEY"]
 
 class SimpleCipher:
@@ -40,5 +40,5 @@ class SimpleCipher:
         decrypted = bytes(a ^ b for a, b in zip(encrypted, keystream))
         return decrypted.decode()
 
-# Создаём один экземпляр для использования
+# Create a single instance for reuse
 cipher = SimpleCipher()

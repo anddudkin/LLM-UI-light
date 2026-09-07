@@ -3,13 +3,13 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
 class TranscriptionRequest(BaseModel):
-    audio_files_ids: List[str] = Field(..., description="Список ID аудиофайлов")
-    audio_files_ext: List[str] = Field(..., description="Список расширений файлов")
-    user_info: Optional[str] = Field(None, description="Информация о пользователе")
+    audio_files_ids: List[str] = Field(..., description="List of audio file IDs")
+    audio_files_ext: List[str] = Field(..., description="List of file extensions")
+    user_info: Optional[str] = Field(None, description="User information")
 
 class TranscriptionResponse(BaseModel):
-    data: dict = Field(..., description="словарь {file_id : text, ...}")
-    user_info: Optional[str] = Field(None, description="Информация о пользователе")
+    data: dict = Field(..., description="dict {file_id : text, ...}")
+    user_info: Optional[str] = Field(None, description="User information")
 
 class ChatHistory(BaseModel):
     messages: List[dict]

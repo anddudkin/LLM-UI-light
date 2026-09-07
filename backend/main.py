@@ -101,7 +101,7 @@ async def _cleanup_old_conversations_loop() -> None:
             await session.commit()
         if stale_conversations:
             logger.info(
-                f"Автоочистка чатов: удалено {len(stale_conversations)} бесед старше {retention_days} дн."
+                f"Chat auto-cleanup: deleted {len(stale_conversations)} conversation(s) older than {retention_days} day(s)."
             )
         await asyncio.sleep(CHAT_CLEANUP_INTERVAL_SECONDS)
 
@@ -117,8 +117,8 @@ REQUIRED_DIRS = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    """Создание директорий при запуске приложения"""
-    logger.info("Проверка и создание необходимых директорий...")
+    """Creates required directories on application startup."""
+    logger.info("Checking and creating required directories...")
 
     created_dirs = []
     existing_dirs = []
@@ -126,26 +126,26 @@ async def lifespan(app: FastAPI):
     for dir_path in REQUIRED_DIRS:
         path = dir_path
 
-        # Проверяем, существует ли директория
+        # Check whether the directory exists
         if not dir_path.exists():
-            # Создаем директорию и все родительские, если их нет
+            # Create the directory and any missing parents
             dir_path.mkdir(parents=True, exist_ok=True)
             created_dirs.append(str(dir_path))
-            logger.info(f"✓ Создана директория: {dir_path}")
+            logger.info(f"✓ Created directory: {dir_path}")
         else:
             existing_dirs.append(str(path))
-            logger.info(f"✓ Директория уже существует: {path}")
+            logger.info(f"✓ Directory already exists: {path}")
 
     await asyncio.to_thread(_run_migrations)
-    logger.info("✓ Миграции базы данных применены")
+    logger.info("✓ Database migrations applied")
 
     cleanup_task = None
     if CHAT_RETENTION_DAYS:
         cleanup_task = asyncio.create_task(_cleanup_old_conversations_loop())
-        logger.info(f"✓ Автоочистка чатов включена: хранение {CHAT_RETENTION_DAYS} дн.")
+        logger.info(f"✓ Chat auto-cleanup enabled: retention {CHAT_RETENTION_DAYS} day(s).")
 
     yield
-    # Выполняется при закрытии приложения
+    # Runs on application shutdown
     if cleanup_task:
         cleanup_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -175,16 +175,16 @@ app.add_middleware(
 #     return HTML
 
 async def tool_handler(tool_name,tool_query):
-    logger.info(f"Вызов функции {tool_name} {tool_query}")
+    logger.info(f"Calling function {tool_name} {tool_query}")
     if tool_name == "web_search":
         # arguments = json.loads(tool_query)
         # query = arguments["query"]
         return await web_search(tool_query)
     if tool_name == "company_data_search":
-        return f"Информация о компании: {comp_data}"
+        return f"Company information: {comp_data}"
     else:
-        logger.info(f"Проблемы с вызовом функции ({tool_name}  {tool_query})")
-        return "Вызываемая функция не найдена или недоступна"
+        logger.info(f"Problem calling function ({tool_name}  {tool_query})")
+        return "The called function was not found or is unavailable"
 
 
 
@@ -192,16 +192,16 @@ async def tool_handler(tool_name,tool_query):
 async def generate(client, messages, depth=0, max_depth=5, force_web_search=False, web_search_query=None):
     """Recursive core generator: yields structured events (dicts), not raw text."""
     if depth >= max_depth:
-        logger.warning(f"Достигнута максимальная глубина рекурсии {max_depth}")
-        logger.info(f"Превышено максимальное количество вызовов функций.")
-        yield {"type": "error", "message": "Превышено максимальное количество вызовов функций."}
+        logger.warning(f"Reached maximum recursion depth {max_depth}")
+        logger.info("Exceeded the maximum number of function calls.")
+        yield {"type": "error", "message": "Exceeded the maximum number of function calls."}
         return
 
     if force_web_search:
         query = (web_search_query or "").strip()
         if query:
             tool_call_id = str(uuid.uuid4())[:4]
-            logger.info("Принудительный поиск в интернете (запрошено пользователем)")
+            logger.info("Forced web search (requested by user)")
             yield {"type": "tool_call_start", "tool": "web_search", "query": query}
             content = await tool_handler("web_search", query)
             yield {"type": "tool_result", "tool": "web_search", "content": content}
@@ -247,18 +247,18 @@ async def generate(client, messages, depth=0, max_depth=5, force_web_search=Fals
         token = chunk.choices[0].delta.content
 
         if chunk.choices[0].finish_reason == 'tool_calls':
-            logger.info(f"Попытка вызвать функцию {tool_name}") #finish_reason=None
+            logger.info(f"Attempting to call function {tool_name}") #finish_reason=None
             try:
                 arguments = json.loads(tool_query)
                 query = arguments["query"]
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                logger.error(f"Некорректные аргументы вызова функции {tool_name} ({tool_query!r}): {e}")
-                yield {"type": "error", "message": "Не удалось выполнить вызов функции: модель передала некорректные аргументы."}
+                logger.error(f"Invalid arguments for function call {tool_name} ({tool_query!r}): {e}")
+                yield {"type": "error", "message": "Failed to execute the function call: the model passed invalid arguments."}
                 return
             id = str(uuid.uuid4())[:4]
             yield {"type": "tool_call_start", "tool": tool_name, "query": query}
             content = await tool_handler(tool_name,query)
-            logger.info(f"Данные от функции {tool_name} получены")
+            logger.info(f"Received data from function {tool_name}")
             yield {"type": "tool_result", "tool": tool_name, "content": content}
             messages.append({
                 "role": "assistant",
@@ -288,9 +288,9 @@ async def generate(client, messages, depth=0, max_depth=5, force_web_search=Fals
             tool_name = None
             continue
 
-        if chunk.choices[0].delta.tool_calls: # собираем строку вызова функции
+        if chunk.choices[0].delta.tool_calls: # accumulate the function-call argument string
             #print(chunk)
-            if not chunk.choices[0].delta.tool_calls[0].function.arguments: # если аргумент пустой (первый тулл колл всегда пустой, там только название функции)
+            if not chunk.choices[0].delta.tool_calls[0].function.arguments: # if the argument is empty (the first tool-call chunk is always empty, it only carries the function name)
                 tool_name= chunk.choices[0].delta.tool_calls[0].function.name
                 #print(chunk.choices[0].delta.tool_calls[0].function.name)
                 continue
@@ -320,9 +320,9 @@ async def generate_title(client, user_text: str) -> str | None:
             messages=[
                 {
                     "role": "system",
-                    "content": "Придумай короткий заголовок по теме для диалога (не более 5 слов) по первому "
-                                "сообщению пользователя. Ответь только заголовком, без кавычек, "
-                                "точки в конце и пояснений.",
+                    "content": "Come up with a short topical title for the conversation (no more than 5 words) "
+                                "based on the user's first message. Reply with only the title, no quotes, "
+                                "no trailing period, and no explanations.",
                 },
                 {"role": "user", "content": user_text[:2000]},
             ],
@@ -333,14 +333,14 @@ async def generate_title(client, user_text: str) -> str | None:
             timeout=TITLE_TIMEOUT,
             max_tokens=50
         )
-        #logger.info(f"Генерация заголовка ({response.json()}s)")
+        #logger.info(f"Title generation ({response.json()}s)")
         title = (response.choices[0].message.content or "").strip().strip('"').strip("'").strip()
         return title[:80] or None
     except (APIConnectionError, APITimeoutError) as e:
-        logger.warning(f"Генерация заголовка не уложилась в таймаут ({TITLE_TIMEOUT.read}s): {e}")
+        logger.warning(f"Title generation timed out ({TITLE_TIMEOUT.read}s): {e}")
         return None
     except Exception as e:
-        logger.error(f"Не удалось сгенерировать заголовок диалога: {e}")
+        logger.error(f"Failed to generate conversation title: {e}")
         return None
 
 
@@ -359,9 +359,9 @@ async def stream_and_persist(client, messages, conversation, db: AsyncSession, t
                 tool_events.append(event)
             yield json.dumps(event, ensure_ascii=False) + "\n"
     except (APIConnectionError, APITimeoutError) as e:
-        logger.error(f"LLM недоступен: {e}")
+        logger.error(f"LLM unavailable: {e}")
         yield json.dumps(
-            {"type": "error", "message": "Нет соединения с LLM-сервером. Проверьте подключение и повторите попытку."},
+            {"type": "error", "message": "No connection to the LLM server. Check your connection and try again."},
             ensure_ascii=False,
         ) + "\n"
     except Exception as e:
@@ -402,15 +402,15 @@ async def check_tokens_chat_history(messages=None):
             response.raise_for_status()
             data = response.json()
 
-        logger.info(f"Количество токенов в чате {data['count']} max_model_len {data['max_model_len']}")
-        if data["max_model_len"] / data["count"] > 0.85:  # если в истории сообщений больше 85% достуного контекста
-            if messages and messages[0]["role"] == "system":  # системный промпт не обрезаем
+        logger.info(f"Chat token count {data['count']} max_model_len {data['max_model_len']}")
+        if data["max_model_len"] / data["count"] > 0.85:  # if the message history exceeds 85% of the available context
+            if messages and messages[0]["role"] == "system":  # never trim the system prompt
                 system_message, rest = messages[0], messages[1:]
                 return [system_message] + rest[len(rest) // 2:]
-            return messages[len(messages) // 2:]  # отрезаем в начале половину истории
+            return messages[len(messages) // 2:]  # drop the first half of the history
         return messages
     except Exception as e:
-        logger.warning(f"Не удалось проверить количество токенов истории (LLM недоступен?): {e}")
+        logger.warning(f"Failed to check history token count (LLM unavailable?): {e}")
         return messages
 
 async def check_tokens_document(document_text = None):
@@ -425,10 +425,10 @@ async def check_tokens_document(document_text = None):
             )
             response.raise_for_status()
             data = response.json()
-        logger.info(f"Количество токенов в документе {data['count']} max_model_len {data['max_model_len']}")
+        logger.info(f"Document token count {data['count']} max_model_len {data['max_model_len']}")
         return data["count"] < 0.85 * data["max_model_len"]
     except Exception as e:
-        logger.warning(f"Не удалось проверить количество токенов документа (LLM недоступен?): {e}")
+        logger.warning(f"Failed to check document token count (LLM unavailable?): {e}")
         return True
 
 comp_data = document_to_txt("info_hr.docx")
@@ -437,11 +437,12 @@ comp_data = document_to_txt("info_hr.docx")
 def build_system_prompt() -> dict:
     """Built fresh per request so the embedded date stays correct across long-running processes."""
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    return {'role': 'system', 'content': f'Ты ассистент в компании, который отвечает на вопросы пользователя. Сегодя {today} '
-                                          f'У тебя так же есть доступ к информация для ответы на некоторые вопросы о процессах в компании, можешь ее использовать если нужно.'
-                                          f'Отвечай на русском, если не просят на другом языке.'
-                                          f'Если используешь информацию из результатов web_search, всегда указывай источник markdown-ссылкой '
-                                          f'в формате [название источника](URL), а не просто названием сайта или статьи без самой ссылки.'
+    return {'role': 'system', 'content': f'You are an assistant at a company who answers user questions. Today is {today}. '
+                                          f'You also have access to information to answer some questions about company processes, '
+                                          f'and can use it if needed. '
+                                          f'Reply in English unless asked to use another language. '
+                                          f'If you use information from web_search results, always cite the source as a markdown link '
+                                          f'in the format [source name](URL), rather than just the site or article name without a link.'
                                           }
 
 
@@ -486,7 +487,7 @@ async def _load_history(conversation_id: str, db: AsyncSession) -> list[dict]:
     history = []
     for m in result.scalars().all():
         content = m.content
-        for uploaded_file in m.files:  # реконструируем текст документов только для контекста LLM
+        for uploaded_file in m.files:  # reconstruct document text only for the LLM context
             content = (
                 f"{content}\n### DOCUMENT START ### {uploaded_file.filename}: \n"
                 f"{uploaded_file.extracted_text}\n ### DOCUMENT END ###\n"
@@ -630,7 +631,7 @@ async def upload_file_with_metadata(
 
     files_names = []
 
-    for uploaded_file in files:  # сохраняем файлы пользователя в локальную папку
+    for uploaded_file in files:  # save the user's files to the local folder
         file_id = str(uuid.uuid4())[:8]
         save_path = local_storage_path / "files_chat_cache" / f"{file_id}_{uploaded_file.filename}"
         files_names.append(f"{file_id}_{uploaded_file.filename}")
@@ -642,8 +643,8 @@ async def upload_file_with_metadata(
         try:
             extracted_texts[file_name] = document_to_txt(local_storage_path / "files_chat_cache" / file_name)
         except Exception as e:
-            logger.error(f"Не удалось обработать документ {file_name}: {e}")
-            extracted_texts[file_name] = f"Возникла ошибка при обработке документа: {e}"
+            logger.error(f"Failed to process document {file_name}: {e}")
+            extracted_texts[file_name] = f"An error occurred while processing the document: {e}"
 
     full_message = message
     for file_name, text in extracted_texts.items():
@@ -654,10 +655,10 @@ async def upload_file_with_metadata(
     if not check_document_size:
         raise HTTPException(
             status_code=422,
-            detail="Слишком большой документ. Воспользуйтесь опцией из панели инструментов.",
+            detail="Document too large. Use the option from the toolbar.",
         )
 
-    display_content = message or f"[Отправлено {len(files_names)} файл(ов)]"
+    display_content = message or f"[Sent {len(files_names)} file(s)]"
     user_message = models.Message(conversation_id=conversation.id, role="user", content=display_content)
     db.add(user_message)
     await db.commit()
@@ -718,7 +719,7 @@ async def login(user_info: str = Form(...), db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/health")
 async def check_health():
-    """Прокси к локальной LLM"""
+    """Proxies a health check to the local LLM."""
     logger.info("Health endpoint accessed")
     try:
         async with httpx.AsyncClient() as http:
@@ -728,6 +729,6 @@ async def check_health():
         logger.info(error)
         return JSONResponse(
             status_code=205,
-            content="нет подключения к ллм апи")
+            content="no connection to the LLM API")
 
 

@@ -30,7 +30,7 @@ class Conversation(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
-    title: Mapped[str] = mapped_column(String, default="Новый чат")
+    title: Mapped[str] = mapped_column(String, default="New chat")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 

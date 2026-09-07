@@ -1,20 +1,20 @@
 FROM python:3.14-slim
 
-# Устанавливаем uv
+# Install uv
 RUN pip install uv
 
 WORKDIR /fastapi_beckend_app
 
 COPY requirements.txt .
-# Синхронизируем зависимости с помощью uv
+# Sync dependencies using uv
 RUN uv pip install  --system -r requirements.txt
-# Копируем файлы проекта
+# Copy project files
 COPY . .
 
-# Создаем директорию для монтирования (если будет использоваться)
+# Create the mount directory (if it will be used)
 RUN mkdir -p /local_storage
 
 EXPOSE 8010
 
-# Запускаем Streamlit
+# Start the FastAPI app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010"]

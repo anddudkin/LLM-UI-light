@@ -7,11 +7,11 @@ import openpyxl
 
 # ---------- PDF ----------
 def pdf_text(pdf_path: str | Path) -> str:
-    """Извлекает текст из PDF-файла.
+    """Extracts text from a PDF file.
         Args:
-            pdf_path: Путь к PDF-файлу (строка или Path объект).
+            pdf_path: Path to the PDF file (string or Path object).
         Returns:
-            Строка с текстом, извлеченным со всех страниц PDF
+            A string with the text extracted from all pages of the PDF
     """
     with pdfium.PdfDocument(pdf_path) as pdf:
         return "\n".join(
@@ -22,24 +22,24 @@ def pdf_text(pdf_path: str | Path) -> str:
 
 # ---------- DOCX ----------
 def docx_text(docx_path: str | Path) -> str:
-    """Извлекает текст из DOCX-файла.
+    """Extracts text from a DOCX file.
         Args:
-            docx_path: Путь к DOCX-файлу (строка или Path объект).
+            docx_path: Path to the DOCX file (string or Path object).
 
         Returns:
-            Строка с текстом из всех непустых параграфов документа
+            A string with the text of all non-empty paragraphs in the document
     """
     return "\n".join(p.text for p in docx.Document(docx_path).paragraphs if p.text.strip())
 
 
 # ---------- XLSX ----------
 def xlsx_text(xlsx_path: str | Path) -> str:
-    """Извлекает текст из XLSX-файла в виде markdown-таблиц (по одной на лист).
+    """Extracts text from an XLSX file as markdown tables (one per sheet).
         Args:
-            xlsx_path: Путь к XLSX-файлу (строка или Path объект).
+            xlsx_path: Path to the XLSX file (string or Path object).
 
         Returns:
-            Строка с содержимым всех листов книги в виде markdown-таблиц
+            A string with the contents of all sheets in the workbook as markdown tables
     """
     workbook = openpyxl.load_workbook(xlsx_path, data_only=True, read_only=True)
     sheets_text = []
@@ -61,12 +61,12 @@ def xlsx_text(xlsx_path: str | Path) -> str:
 
 # ---------- auto-route ----------
 def document_to_txt(file_path: str | Path) -> str:
-    """Определяет тип документа и извлекает текст в зависимости от расширения.
+    """Determines the document type and extracts text based on the file extension.
         Args:
-            file_path: Путь к файлу документа (строка или Path объект).
+            file_path: Path to the document file (string or Path object).
 
         Returns:
-            Текст документа
+            The document's text
     """
     try:
         file_path = Path(file_path)
@@ -74,28 +74,28 @@ def document_to_txt(file_path: str | Path) -> str:
         if suffix == ".pdf":
             result_txt = pdf_text(file_path)
             if result_txt == "":
-                return "Это скан pdf файла, напиши пользователю, что не получилось считать текст"
+                return "This is a scanned PDF file, tell the user that the text could not be read"
             return result_txt
         elif suffix == ".docx":
             return docx_text(file_path)
         elif suffix == ".xlsx":
             result_txt = xlsx_text(file_path)
             if result_txt == "":
-                return "Файл пуст, напиши пользователю, что не получилось считать текст"
+                return "The file is empty, tell the user that the text could not be read"
             return result_txt
         else:
-            return " напиши пользователю, Only .pdf, .docx and .xlsx supported"
+            return "tell the user, Only .pdf, .docx and .xlsx supported"
     except Exception as e:
-        return f"Возникла ошибка {e}"
+        return f"An error occurred: {e}"
 
 
 def text_to_docx(text: str, file_path: str | Path ):
     doc = Document()
 
-    # Добавляем текст в документ
+    # Add the text to the document
     doc.add_paragraph(text)
 
-    # Сохраняем документ
+    # Save the document
     doc.save(str(file_path))
 
 
