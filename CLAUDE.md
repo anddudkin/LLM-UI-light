@@ -9,12 +9,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-A Russian-language LLM chat assistant with a FastAPI backend and a Vue 3 frontend. The backend
-proxies chat completions to a self-hosted, OpenAI-compatible LLM server, supports model
-tool-calling (web search + an internal "company data" lookup), lets users upload documents for the
-LLM to reason over, and has an email-based SSO login flow backed by a SQL database (SQLite by
-default, swappable to Postgres). The frontend is a single-page chat UI that talks to the backend
-over a separate origin (CORS wildcard-open on the backend, no dev proxy).
+An LLM chat assistant with a FastAPI backend and a Vue 3 frontend. The backend proxies chat
+completions to a self-hosted, OpenAI-compatible LLM server, supports model tool-calling (web
+search + an internal "company data" lookup), lets users upload documents for the LLM to reason
+over, and has an email-based SSO login flow backed by a SQL database (SQLite by default,
+swappable to Postgres). The frontend is a single-page chat UI that talks to the backend over a
+separate origin (CORS wildcard-open on the backend, no dev proxy). The UI ships with a small
+custom i18n layer (`frontend/src/i18n/`, no external dependency) supporting English and Russian,
+defaulting to English, with a toggle in `ConversationSidebar.vue`; the LLM system prompt
+(`build_system_prompt()` in `backend/main.py`) defaults to English too, instructing the model to
+reply in another language only if asked.
 
 ## Project structure
 
@@ -214,7 +218,7 @@ one clear error from the actual chat call rather than crashing the endpoint or h
   version returned trimming/size errors as 206/210, which `fetch`'s `res.ok` treats as success
   since it covers the whole 200-299 range — fixed after that surfaced as a real bug). Per-file
   extraction failures don't fail the request — `document_to_txt()` never raises (it catches its own
-  exceptions and returns a Russian-language error string instead), so a bad file just becomes an
+  exceptions and returns an English-language error string instead), so a bad file just becomes an
   error message the model sees for that one document instead of aborting the whole upload.
 - `generate()` is a recursive async generator that streams *structured events* (dicts, not raw
   text) from the OpenAI-compatible client: `token`, `tool_call_start`, `tool_result`, `error`.
@@ -224,8 +228,8 @@ one clear error from the actual chat call rather than crashing the endpoint or h
   `stream_and_persist()` wraps `generate()`: serializes each event to an NDJSON line (`media_type
   ="application/x-ndjson"`), accumulates the full assistant text + tool events, persists the
   final `Message` row once the stream ends, and appends a trailing `{"type":"done"}` line. On
-  connection failure it catches `APIConnectionError`/`APITimeoutError` specifically and yields a
-  Russian-language `error` event instead of a raw exception string. If this was the conversation's
+  connection failure it catches `APIConnectionError`/`APITimeoutError` specifically and yields an
+  English-language `error` event instead of a raw exception string. If this was the conversation's
   first message (`title_source_text` passed in), it also calls `generate_title()` — a short
   non-streaming LLM call — updates `Conversation.title`, and yields a `{"type":"title", "title":
   ...}` event before `done`. The frontend's `api/client.js` reads all of this line-by-line to drive
@@ -255,7 +259,7 @@ that page's content in favor of just the search snippet). The decoded HTML is pa
 BeautifulSoup (strip `script`/`style`/`nav`/`footer`/`header`/`aside`, flatten to text), truncated
 to `SEARCH_PAGE_CHAR_LIMIT` characters per page (env var, default 1500), and concatenated into one
 string returned to the model. Both the tool's schema `description` and `build_system_prompt()`'s
-system message instruct the model to cite sources as markdown links (`[название источника](URL)`)
+system message instruct the model to cite sources as markdown links (`[source name](URL)`)
 rather than plain site/article names, since assistant messages are rendered through `markdown-it`
 on the frontend — a plain-text citation never becomes clickable there.
 
@@ -279,7 +283,8 @@ model's own tool-call judgment. `ChatMessageRequest.force_web_search`
 When set, `generate()` runs the search directly via the same `tool_handler("web_search", query)`
 used for organic model-initiated calls — using the raw user message text as the query, *before*
 the model's first completion call — yielding the same `tool_call_start`/`tool_result` events an
-organic call would (so `ToolIndicator.vue` shows "Ищу в интернете" identically either way), then
+organic call would (so `ToolIndicator.vue` shows the same "Searching the internet" label either
+way, via the `tool.web_search` i18n key), then
 appends synthetic assistant/tool messages to `messages` and recurses into the normal flow so the
 model still sees the results and can call further tools if it wants. The forced search only fires
 once: the recursive call doesn't pass `force_web_search` along, so it can't repeat at deeper
@@ -298,25 +303,41 @@ plain text. `renderMarkdown()` also runs `markdown-it-texmath` (KaTeX engine) so
 `rel="noopener noreferrer"` forced via a custom `link_open` rule, with `ADD_ATTR: ["target"]` passed
 to `DOMPurify.sanitize()` since `target` isn't in its default attribute allowlist.
 `chat.newConversation()` is single-flight: if the current conversation is already empty it's reused
-instead of creating a duplicate, and concurrent calls (double-clicking "Новый чат") share one
-in-flight creation promise (`_creatingConversation`). `MessageInput.vue` accepts files both via the
-`FileUpload.vue` picker and by dragging them onto the composer (`@drop`, tracked with a
-`dragDepth` counter to avoid flicker from nested drag events). It also has a sticky "Поиск в
-интернете" toggle (`webSearchEnabled`, doesn't reset after sending) that's passed as
-`forceWebSearch` through `chat.sendMessage()`/`chat.sendMessageWithFiles()` into
-`api/client.js`'s `streamChat`/`streamChatWithFiles`, which send it to the backend as
+instead of creating a duplicate, and concurrent calls (double-clicking "New chat") share one
+in-flight creation promise (`_creatingConversation`) — the reuse check matches against the literal
+title `"New chat"`, the same default `models.Conversation.title` uses server-side. `MessageInput.vue`
+accepts files both via the `FileUpload.vue` picker and by dragging them onto the composer (`@drop`,
+tracked with a `dragDepth` counter to avoid flicker from nested drag events). It also has a sticky
+"Web search" toggle (`webSearchEnabled`, doesn't reset after sending, labeled via the `chat.webSearch`
+i18n key) that's passed as `forceWebSearch` through `chat.sendMessage()`/`chat.sendMessageWithFiles()`
+into `api/client.js`'s `streamChat`/`streamChatWithFiles`, which send it to the backend as
 `force_web_search` — see "Forced web search" above.
+
+**i18n** (`frontend/src/i18n/`): a small hand-rolled layer, not a library like vue-i18n, in keeping
+with the project's dependency-light approach. `locales/en.js` and `locales/ru.js` export flat
+dictionaries of nested keys; `index.js` exposes a reactive `locale` ref (Vue `ref`, so it's usable
+both from `<script setup>` templates and from plain Pinia store files like `stores/chat.js` and
+`stores/auth.js`, not just components), a `t(key, vars)` lookup function (falls back to English if
+a key is missing from the active locale, then returns the raw key if missing from both), and
+`setLocale()`, which persists the choice to `localStorage` (`app_llm_locale`) and updates
+`document.documentElement.lang` / `document.title` via a `watch`. Default locale is English unless
+`localStorage` already has a stored choice. `ConversationSidebar.vue` renders the EN/RU toggle
+buttons. Locally-generated user-facing strings that used to be hardcoded Russian (e.g. the
+`"[Sent N file(s)]"` placeholder shown before a file-upload message is confirmed, in `stores/chat.js`)
+now go through `t()` too, so they follow the active locale like everything else — this is distinct
+from the *assistant's reply* language, which is controlled independently by the backend's system
+prompt (see "Project overview" above), not by the frontend's selected UI locale.
 
 Logging is configured globally in `main.py` to append to `backend/fastapi_backend.log` (tracked in
 git).
 
 **Document processing** (`backend/document_processing.py`): `document_to_txt()` auto-routes by file
 extension — `.pdf` via `pypdfium2` (text-layer extraction only; a scanned/image PDF with no text
-layer returns a Russian-language string telling the model to inform the user, not raw OCR — there
+layer returns an English-language string telling the model to inform the user, not raw OCR — there
 is no OCR in this codebase, deliberately, to keep the whole app CPU-only and dependency-light),
 `.docx` via `python-docx` (paragraph text), `.xlsx` via `openpyxl` (each sheet rendered as a
-markdown table). Any other extension, or any exception during extraction, produces a
-Russian-language explanatory string rather than raising — `document_to_txt()` never throws, so a
+markdown table). Any other extension, or any exception during extraction, produces an
+English-language explanatory string rather than raising — `document_to_txt()` never throws, so a
 bad/unsupported file degrades to an error message the model can relay, instead of failing the whole
 request. This same function backs both `comp_data = document_to_txt("info_hr.docx")` at startup and
 per-file extraction in `/api/v1/chat/completions_files`. There is intentionally no separate

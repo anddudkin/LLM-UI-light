@@ -6,9 +6,8 @@ lookup), document uploads (PDF/DOCX/XLSX) for the model to reason over, and a si
 login via an SSO redirect.
 
 The project targets self-hosting by a single person or a small team — no GPU, no complex
-infrastructure required. The UI, system prompts, and some code comments are in Russian by default
-(this was the project's original audience); see "Language" below if you're adapting it for an
-English-speaking deployment.
+infrastructure required. The UI supports English and Russian, with a toggle in the sidebar and
+English as the default; see "Language" below for details.
 
 ## Features
 
@@ -92,12 +91,14 @@ accurate technical description of the architecture for humans too).
 
 ## Language
 
-The UI, LLM system prompts, and some code comments are in Russian by default, reflecting the
-project's original target audience. This is a product choice baked into the current codebase, not
-something you need to work around to use the project — but if you're deploying for an
-English-speaking audience, you'll want to translate `build_system_prompt()` in `backend/main.py`
-and the frontend's UI strings. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how this affects
-contributions.
+The frontend UI is bilingual (English and Russian) via a small hand-rolled i18n layer
+(`frontend/src/i18n/`, no external dependency), with a toggle button in the sidebar
+(`ConversationSidebar.vue`) and English as the default. The choice persists in `localStorage`.
+The backend's LLM system prompt (`build_system_prompt()` in `backend/main.py`) is written in
+English and instructs the model to reply in English unless the user asks for another language —
+this is independent of the frontend's UI locale toggle, so switching the UI to Russian does not by
+itself make the assistant reply in Russian. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how this
+affects contributions.
 
 ## License
 

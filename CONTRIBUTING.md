@@ -25,7 +25,6 @@ Uses [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix
 
 ## Language
 
-The UI, the LLM system prompts, and some code comments are in Russian — this is a deliberate
-product choice reflecting the project's original audience, not something that needs to be
-translated in a PR. Comments on new code can be written in Russian or English — match the style
-of the surrounding code in the file.
+Code, comments, and the LLM system prompt are in English. The frontend UI is bilingual
+(English/Russian) via `frontend/src/i18n/`; when adding a user-facing string, add a key to both
+`locales/en.js` and `locales/ru.js` rather than hardcoding text in a component.
