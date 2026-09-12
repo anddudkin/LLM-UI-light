@@ -1,9 +1,43 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from "vue";
+import { onMounted, onBeforeUnmount, ref, computed } from "vue";
 import { useChatStore } from "../stores/chat";
 import { t, locale, setLocale } from "../i18n";
 
 const chat = useChatStore();
+
+const conversationGroups = computed(() => {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sevenDaysAgo = new Date(startOfToday);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const thirtyDaysAgo = new Date(startOfToday);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const today = [];
+  const last7Days = [];
+  const last30Days = [];
+  const older = [];
+
+  for (const conversation of chat.conversations) {
+    const updatedAt = new Date(conversation.updated_at);
+    if (updatedAt >= startOfToday) {
+      today.push(conversation);
+    } else if (updatedAt >= sevenDaysAgo) {
+      last7Days.push(conversation);
+    } else if (updatedAt >= thirtyDaysAgo) {
+      last30Days.push(conversation);
+    } else {
+      older.push(conversation);
+    }
+  }
+
+  return [
+    { key: "today", label: t("chat.dateToday"), items: today },
+    { key: "last7Days", label: t("chat.dateLast7Days"), items: last7Days },
+    { key: "last30Days", label: t("chat.dateLast30Days"), items: last30Days },
+    { key: "older", label: t("chat.dateOlder"), items: older },
+  ].filter((group) => group.items.length > 0);
+});
 
 const localeOptions = [
   { code: "en", label: "English" },
@@ -52,18 +86,22 @@ onBeforeUnmount(() => {
       <span class="new-chat-label">{{ t("chat.newChat") }}</span>
     </button>
 
-    <div class="list-label" v-if="chat.conversations.length">{{ t("chat.chats") }}</div>
-    <ul class="list">
-      <li
-        v-for="conversation in chat.conversations"
-        :key="conversation.id"
-        :class="{ active: conversation.id === chat.currentConversationId }"
-        :title="conversation.title"
-        @click="chat.selectConversation(conversation.id)"
-      >
-        {{ conversation.title }}
-      </li>
-    </ul>
+    <div class="list" v-if="chat.conversations.length">
+      <div v-for="group in conversationGroups" :key="group.key" class="conversation-group">
+        <div class="date-label">{{ group.label }}</div>
+        <ul>
+          <li
+            v-for="conversation in group.items"
+            :key="conversation.id"
+            :class="{ active: conversation.id === chat.currentConversationId }"
+            :title="conversation.title"
+            @click="chat.selectConversation(conversation.id)"
+          >
+            {{ conversation.title }}
+          </li>
+        </ul>
+      </div>
+    </div>
 
     <div class="lang-switch" ref="langSwitchEl">
       <button
@@ -156,24 +194,27 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
-.list-label {
+.date-label {
   color: var(--text-secondary);
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.75rem 0.5rem 0.15rem;
+  padding: 0.75rem 0.5rem 0.35rem;
 }
 
 .list {
+  overflow-y: auto;
+  scrollbar-color: transparent transparent;
+}
+
+.list ul {
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  scrollbar-color: transparent transparent;
 }
 
 .sidebar:hover .list {
